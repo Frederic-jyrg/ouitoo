@@ -23,5 +23,5 @@ There, can be find material presented in explanations, specs, requirements and i
 
 folder "info-plotting"
 
-Here is more about "HowTo" plot things or display on the screen.
+Here is more about "HowTo" plot things or display on the screen (explanations, specs, requirements and ideas).
 
