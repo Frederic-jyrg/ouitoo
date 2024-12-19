@@ -2,20 +2,20 @@
 
 Status: in work
 
-1. useful links
 _______________
+1. useful links
 
 Projects iterations: See https://github.com/users/Frederic-jyrg/projects/1 <br>
 Information: See https://github.com/Frederic-jyrg/ouitoo/wiki <br>
 Discussions: See https://github.com/Frederic-jyrg/ouitoo/discussions <br>
 
-2. distribution
 _______________
+2. distribution
 
 Nothing to distribute to date.
 
-3. material available
 _____________________
+3. material available
 
 folder "info"
 
