@@ -25,6 +25,7 @@ Here is more about "HowTo" plot things or display on the screen (explanations, s
 
 
 Screenshot: <br>
-![](https://github.com/Frederic-jyrg/ouitoo/blob/main/iterations/Capture%202025-2-5.PNG)
+![](https://github.com/Frederic-jyrg/ouitoo/blob/main/iterations/Capture-2025-2-5.PNG)
+
 
 
