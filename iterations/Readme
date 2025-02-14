@@ -5,6 +5,14 @@ png screenshots here
 Pieces of codes for Map Loading: <br>
 Map_load*.py
 
+GUI activities
+
 Pieces of codes for user Inputs: <br>
 menu*.py
+
+Pieces of codes for track plotting: <br>
+track*.py
+
+Pieces of codes for north switching: <br>
+north_switch.py
 
