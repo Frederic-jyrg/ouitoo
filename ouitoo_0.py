@@ -2,7 +2,6 @@ import tkinter as tk
 from PIL import Image, ImageTk  # Install Pillow: pip install Pillow
 import math
 import numpy as np
-import os
 
 class Application(tk.Frame):
     def __init__(self, master=None):
