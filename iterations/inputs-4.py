@@ -6,6 +6,30 @@ import tkinter as tk
 MyVar = os.environ.get('OS')
 if ('win' in MyVar) or ('Win' in MyVar) or ('windows' in MyVar) or ('Windows' in MyVar): print("Windows System")
 
+
+dirmap = "photos"
+dirinput = "inputfiles"
+
+current_dir = os.getcwd()
+##print(current_dir)
+print(f"Current directory: {current_dir}")
+
+# Change the current working directory
+new_dir = "D:\DATA\_Newfolder\ouitoo"  # Replace with the desired path
+try:
+    os.chdir(new_dir)
+    print(f"Directory changed to: {os.getcwd()}")
+except FileNotFoundError:
+    print(f"Error: Directory not found: {new_dir}")
+except PermissionError:
+    print(f"Error: Permission denied to access: {new_dir}")
+except Exception as e:
+    print(f"An error occurred: {e}")
+
+##
+##
+##
+
 def show_popup(event):
     popup_menu.post(event.x_root, event.y_root)
 
@@ -24,6 +48,7 @@ def print_contents(event):
         print("Hi. The current entry content is:",
               contents.get())
     elif (entrystep==2):
+        print(mapname)
         main(mapname)
 
 def read_data_from_file(filename):
@@ -60,10 +85,8 @@ def main(varname):
     # Files usage
     ##mapname = "union-plaza-ocad-4000-04-09-2021.PNG"
     inputname = mapname + ".input"
-    dirmap = "./photos/"
-    dirinput = "./inputfiles/"
-    inputfilename = dirinput + inputname
-    mapfilename = dirmap + mapname
+    inputfilename = "./" + dirinput + "/" + inputname
+    mapfilename =  "./" + dirmap + "/"  + mapname
 
     if os.path.isfile(mapfilename):
       try:
@@ -118,23 +141,8 @@ entrythingy["textvariable"] = contents
 
 entrystep=1
 
-current_dir = os.getcwd()
-##print(current_dir)
-print(f"Current directory: {current_dir}")
 
-# Change the current working directory
-new_dir = "D:\DATA\_Newfolder\ouitoo"  # Replace with the desired path
-try:
-    os.chdir(new_dir)
-    print(f"Directory changed to: {os.getcwd()}")
-except FileNotFoundError:
-    print(f"Error: Directory not found: {new_dir}")
-except PermissionError:
-    print(f"Error: Permission denied to access: {new_dir}")
-except Exception as e:
-    print(f"An error occurred: {e}")
-
-MyDir = os.path.join(new_dir, "photos")
+MyDir = os.path.join(new_dir, dirmap)
 print(f"Files in the directory: {MyDir}")
 files = os.listdir(MyDir)
 print(MyDir)
