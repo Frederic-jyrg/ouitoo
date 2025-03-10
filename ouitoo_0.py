@@ -10,11 +10,10 @@ import math
 import numpy as np
 import os
 import functools
+import time
+import threading
+import random
 
-############################################################################
-# remove this block once load_image() is moved to count==2 step of the GUI menus
-PointCyc=True
-###############################################################################
 
 ## Test for system check
 ## continuing if Intel architecture
@@ -88,6 +87,19 @@ class Application(tk.Frame):
         self.Y0=None
         self.X2=None
         self.Y2=None
+        self.mapname=None
+
+        self.northdir=None
+        self.rotateat_ang=0.0
+        self.rotateat_ang_prev=0.0
+
+        self.Plot_Pos = []
+        self.plotlabel = None
+
+## button demo
+        self.button_demo_image = None
+        self.button_id_demo = None
+
 ##
 ##
 ##
@@ -143,7 +155,7 @@ class Application(tk.Frame):
 
 
         def handle_input(Myvar):
-            global main_canvas, return_button, entry1, entry2, entry3, entry4
+            global main_canvas, entry1, entry2, entry3, entry4
             self.count=Myvar
             if self.count==1:
                 MName = entry1.get()
@@ -177,23 +189,33 @@ class Application(tk.Frame):
                 self.count += 1
                 print(self.count)
                 handle_input_main(self.count)
+            elif self.count==7:
+                self.count += 1
+                print(self.count)
+                handle_input_main(self.count)
+            elif self.count==8:
+                self.count += 1
+                print(self.count)
+                handle_input_main(self.count)
 
-            if self.count > 7: # Exit condition
+            if self.count > 9: # Exit condition
                 root.destroy()  # Close the window
                 return
 
         def handle_input_main(Myvar):
-            global main_canvas, return_button, entry1, content1, entry2, entry3, entry4
-            global mapname, datamap, PointCyc
+            global main_canvas, return_button, pointer_button, entry1, content1, entry2, entry3, entry4
+            global mapname, datamap
             global LAT_REF,LONG_REF,LAT_PT2,LONG_PT2,DISTANCE,SCALE,ROTATION_ANGLE,NORTH_MODE, MAP_NAME
 
-            PointCyc=True
             print(" in handle_input_main ")
             self.count=Myvar
             print(self.count)
             print("main",self.count)
             j=self.count
             smiley_icon = Image.open("D:\DATA\_Newfolder\ouitoo\.icons\happy.png")
+            pointer_icon = Image.open("D:\DATA\_Newfolder\ouitoo\.icons\pointer.png")
+            northmag_icon = Image.open("D:\DATA\_Newfolder\ouitoo\.icons\Mag.png")
+            polaris_icon = Image.open("D:\DATA\_Newfolder\ouitoo\.icons\polaris.png")
 
             if self.count==1:
 
@@ -216,17 +238,15 @@ class Application(tk.Frame):
 
                 resize_smiley = smiley_icon.resize((100, 100))
                 return_button_icon = ImageTk.PhotoImage(resize_smiley)
-                return_button = tk.Button(root, text="enter", image=return_button_icon, command = lambda i=j: handle_input(i))
+                return_button = tk.Button(self.canvas, image=return_button_icon, command = lambda i=j: handle_input(i))
                 return_button.image = return_button_icon
                 return_button.pack()
                 return_button.place(x=250, y=0)
 
-
-
             elif self.count==2:
 
                 self.popup_menu.destroy()
-
+                self.load_image(mapname)
                 self.set_map_data(mapname)
                 LAT_REF=float(datamap[0].split(",")[0])
                 LONG_REF=float(datamap[0].split(",")[1])
@@ -237,8 +257,6 @@ class Application(tk.Frame):
                 ROTATION_ANGLE=float(datamap[4])
                 NORTH_MODE=str(datamap[5])
                 print(LAT_REF,LONG_REF,LAT_PT2,LONG_PT2,DISTANCE,SCALE,ROTATION_ANGLE,NORTH_MODE)
-
-                self.load_pointer(self.canvas, False)
 
                 if main_canvas: # Destroy previous canvas
                     main_canvas.destroy()
@@ -251,7 +269,7 @@ class Application(tk.Frame):
 
                 j=self.count
                 # Main canvas
-                main_canvas = tk.Canvas(root, width=250, height=300, bg="blue")
+                main_canvas = tk.Canvas(self.canvas, width=250, height=300, bg="blue")
                 main_canvas.pack()
                 main_canvas.place(x=50, y=300)
 
@@ -275,7 +293,7 @@ class Application(tk.Frame):
 
                 resize_smiley = smiley_icon.resize((100, 100))
                 return_button_icon = ImageTk.PhotoImage(resize_smiley)
-                return_button = tk.Button(root, text="enter", image=return_button_icon, command = lambda i=j: handle_input(i))
+                return_button = tk.Button(self.canvas, image=return_button_icon, command = lambda i=j: handle_input(i))
                 return_button.image = return_button_icon
                 return_button.pack()
                 return_button.place(x=250, y=0)
@@ -292,19 +310,26 @@ class Application(tk.Frame):
                     entry4 = None
                 print(LAT_REF,LONG_REF,LAT_PT2,LONG_PT2,DISTANCE,SCALE,ROTATION_ANGLE,NORTH_MODE)
 
-                self.load_pointer(self.canvas, True)
-
                 j=self.count
                 resize_smiley = smiley_icon.resize((100, 100))
                 return_button_icon = ImageTk.PhotoImage(resize_smiley)
-                return_button = tk.Button(root, text="enter", image=return_button_icon, command = lambda i=j: handle_input(i))
+                return_button = tk.Button(self.canvas, image=return_button_icon, command = lambda i=j: handle_input(i))
                 return_button.image = return_button_icon
                 return_button.pack()
                 return_button.place(x=250, y=0)
 
+##                resize_pointer = pointer_icon.resize((100, 100))
+                pointer_button_icon = ImageTk.PhotoImage(pointer_icon)
+
+                # Create a pointer canvas
+##                pointer_button_canvas = tk.Canvas(self.canvas, width=pointer_button_icon.width(), height=pointer_button_icon.height(), bg=root['bg'], highlightthickness=0)
+##                pointer_button_canvas.pack()
+                self.pointer_icon = self.canvas.create_image(WWWidth/2.0, WWHeight/2.0, image=pointer_button_icon, anchor=tk.NW)
+                self.canvas.image = pointer_button_icon # Keep a reference to prevent garbage collection
+                self.canvas.tag_raise(self.pointer_icon)
+
             elif self.count==4:
 
-                self.load_pointer(self.canvas, False)
                 if main_canvas: # Destroy previous canvas
                     main_canvas.destroy()
                 if return_button: # Destroy previous button
@@ -313,10 +338,12 @@ class Application(tk.Frame):
                     entry2 = None
                     entry3 = None
                     entry4 = None
+                if self.canvas.image: # Destroy previous button
+                    self.canvas.delete(self.pointer_icon)
 
                 j=self.count
                 # Main canvas
-                main_canvas = tk.Canvas(root, width=250, height=140, bg="blue")
+                main_canvas = tk.Canvas(self.canvas, width=250, height=140, bg="blue")
                 main_canvas.pack()
                 main_canvas.place(x=50, y=300) # Position at coordinates (50, 50)
 
@@ -340,14 +367,13 @@ class Application(tk.Frame):
 
                 resize_smiley = smiley_icon.resize((85, 85))
                 return_button_icon = ImageTk.PhotoImage(resize_smiley)
-                return_button = tk.Button(root, text="enter", image=return_button_icon, command = lambda i=j: handle_input(i))
+                return_button = tk.Button(self.canvas, text="enter", image=return_button_icon, command = lambda i=j: handle_input(i))
                 return_button.image = return_button_icon
                 return_button.pack()
                 return_button.place(x=275, y=0)
 
             elif self.count==5:
 
-                self.load_pointer(self.canvas, False)
                 if main_canvas: # Destroy previous canvas
                     main_canvas.destroy()
                 if return_button: # Destroy previous button
@@ -356,23 +382,25 @@ class Application(tk.Frame):
                     entry2 = None
                     entry3 = None
                     entry4 = None
-
-                self.load_pointer(self.canvas, True)
 
                 j=self.count
                 resize_smiley = smiley_icon.resize((100, 100))
                 return_button_icon = ImageTk.PhotoImage(resize_smiley)
-                return_button = tk.Button(root, text="enter", image=return_button_icon, command = lambda i=j: handle_input(i))
+                return_button = tk.Button(self.canvas, image=return_button_icon, command = lambda i=j: handle_input(i))
                 return_button.image = return_button_icon
                 return_button.pack()
                 return_button.place(x=250, y=0)
 
+                pointer_button_icon = ImageTk.PhotoImage(pointer_icon)
+                self.pointer_icon = self.canvas.create_image(WWWidth/2.0, WWHeight/2.0, image=pointer_button_icon, anchor=tk.NW)
+                self.canvas.image = pointer_button_icon # Keep a reference to prevent garbage collection
+                self.canvas.tag_raise(self.pointer_icon)
+
+##                pointer_button = tk.Button(root, image=pointer_button_icon, command = None, borderwidth=0, highlightthickness=0)
+##                pointer_button.image = pointer_button_icon
+##                pointer_button.place(x=WWWidth/2.0, y=WWHeight/2.0)
+
             elif self.count==6:
-
-#   Therefore the pointer becomes useless, the map has been being referenced (including this case)
-                self.load_pointer(self.canvas, False)
-                PointCyc=False
-
 
                 if main_canvas: # Destroy previous canvas
                     main_canvas.destroy()
@@ -382,10 +410,12 @@ class Application(tk.Frame):
                     entry2 = None
                     entry3 = None
                     entry4 = None
+                if self.canvas.image: # Destroy previous button
+                    self.canvas.delete(self.pointer_icon)
 
                 j=self.count
                 # Main canvas
-                main_canvas = tk.Canvas(root, width=260, height=260, bg="blue")
+                main_canvas = tk.Canvas(self.canvas, width=260, height=260, bg="blue")
                 main_canvas.pack()
                 main_canvas.place(x=50, y=300) # Position at coordinates (50, 50)
 
@@ -410,8 +440,7 @@ class Application(tk.Frame):
                 SCAL=SCALE
                 ROTANG=ROTATION_ANGLE
                 NORTHMOD=NORTH_MODE
-
-
+                self.northdir = NORTH_MODE
 
                 content1 = tk.StringVar()
                 content2 = tk.StringVar()
@@ -428,14 +457,13 @@ class Application(tk.Frame):
 
                 resize_smiley = smiley_icon.resize((85, 85))
                 return_button_icon = ImageTk.PhotoImage(resize_smiley)
-                return_button = tk.Button(root, text="enter", image=return_button_icon, command = lambda i=j: handle_input(i))
+                return_button = tk.Button(root, image=return_button_icon, command = lambda i=j: handle_input(i))
                 return_button.image = return_button_icon
                 return_button.pack()
                 return_button.place(x=275, y=0)
 
             elif self.count==7:
 
-##                self.load_pointer(self.canvas, False)
                 if main_canvas: # Destroy previous canvas
                     main_canvas.destroy()
                 if return_button: # Destroy previous button
@@ -444,9 +472,165 @@ class Application(tk.Frame):
                     entry2 = None
                     entry3 = None
                     entry4 = None
-                    print(self.X0, self.Y0, self.X2, self.Y2)
-                    self.GPS_to_screen(40.8104943,-96.6891308)
-##                self.TrackPlot()
+
+            ## check some stuff
+            ## gets height: https://www.ngs.noaa.gov/web_services/geoid.shtml
+            ## https://geodesy.noaa.gov/api/geoid/ght?lat=40.0&lon=W0800000.0 ## <- crucial call
+            ## gets UTM: https://www.ngs.noaa.gov/api/ncat/llh?lat=40.0&lon=-80.0&inDatum=nad83(1986)&outDatum=nad83(2011)&utmZone=16 <-- call
+            ## info: https://www.ngs.noaa.gov/web_services/ncat/lat-long-height-service.shtml
+##    {
+##      "ID": "1741282297895",
+##      "nadconVersion": "5.0",
+##      "vertconVersion": "3.0",
+##      "srcDatum": "NAD83(1986)",
+##      "destDatum": "NAD83(2011)",
+##      "srcVertDatum": "N/A",
+##      "destVertDatum": "N/A",
+##      "srcLat": "40.0000000000",
+##      "srcLatDms": "N400000.00000",
+##      "destLat": "39.9999983008",
+##      "destLatDms": "N395959.99388",
+##      "deltaLat": "-0.189",
+##      "sigLat": "0.000263",
+##      "sigLat_m": "0.0081",
+##      "srcLon": "-80.0000000000",
+##      "srcLonDms": "W0800000.00000",
+##      "destLon": "-79.9999976143",
+##      "destLonDms": "W0795959.99141",
+##      "deltaLon": "0.204",
+##      "sigLon": "0.000221",
+##      "sigLon_m": "0.0052",
+##      "heightUnits": "N/A",
+##      "srcEht": "N/A",
+##      "destEht": "N/A",
+##      "sigEht": "N/A",
+##      "srcOrthoht": "N/A",
+##      "destOrthoht": "N/A",
+##      "sigOrthoht": "N/A",
+##      "spcZone": "PA S-3702",
+##      "spcNorthing_m": "76,470.391",
+##      "spcEasting_m": "407,886.681",
+##      "spcNorthing_usft": "250,886.607",
+##      "spcEasting_usft": "1,338,208.220",
+##      "spcNorthing_ift": "250,887.109",
+##      "spcEasting_ift": "1,338,210.896",
+##      "spcConvergence": "-01 27 35.22",
+##      "spcScaleFactor": "0.99999024",
+##      "spcCombinedFactor": "N/A",
+##      "utmZone": "UTM Zone 16",
+##      "utmNorthing": "4,451,293.265",
+##      "utmEasting": "1,097,776.886",
+##      "utmConvergence": "04 30 46.22",
+##      "utmScaleFactor": "1.00400201",
+##      "utmCombinedFactor": "N/A",
+##      "x": "N/A",
+##      "y": "N/A",
+##      "z": "N/A",
+##      "usng": "16SBK9777751293"
+##    }
+
+##    import requests
+##        url = "https://api.example.com/data"
+##        response = requests.get(url)
+##    if response.status_code == 200:
+##        data = response.json()  # If the response is in JSON format
+##        # Process the data
+##        print(data)
+##    else:
+##        print(f"Error: {response.status_code}")
+##    headers = {"Authorization": "Bearer token"}
+##    params = {"query": "example"}
+##    response = requests.get(url, headers=headers, params=params)
+##
+##    data = {"key": "value"}
+##    response = requests.post(url, json=data)  # Send data as JSON
+
+## magnetic declination: import pygeomag for the WMM
+                magnetic_declination=-2.56
+
+                print("ouitoo detects a fancy setting")
+                print("starting over ?")
+                starting_over="no"
+                # if yes self.count =2
+
+                if (starting_over=="yes"):
+                    self.count=2
+                    j=self.count
+                    # Main canvas
+                    main_canvas = tk.Canvas(self.canvas, width=250, height=300, bg="blue")
+                    main_canvas.pack()
+                    main_canvas.place(x=50, y=300)
+
+                    # Create labels and entry fields directly on the canvas
+                    main_canvas.create_text(125, 50, text="Latitude pt1, (ref):", font=("Arial", 15) , fill="white")
+                    main_canvas.create_text(125, 150, text="Longitude pt1, (ref):", font=("Arial", 15), fill="white")
+                    entry1 = tk.Entry(main_canvas)
+                    entry2 = tk.Entry(main_canvas)
+                    main_canvas.create_window(125, 100, window=entry1)
+                    main_canvas.create_window(125, 200, window=entry2)
+
+                    LATREF=LAT_REF
+                    LONGREF=LONG_REF
+
+                    content1 = tk.StringVar()
+                    content2 = tk.StringVar()
+                    content1.set(LATREF)
+                    content2.set(LONGREF)
+                    entry1["textvariable"] = content1
+                    entry2["textvariable"] = content2
+
+                    resize_smiley = smiley_icon.resize((100, 100))
+                    return_button_icon = ImageTk.PhotoImage(resize_smiley)
+                    return_button = tk.Button(self.canvas, image=return_button_icon, command = lambda i=j: handle_input(i))
+                    return_button.image = return_button_icon
+                    return_button.pack()
+                    return_button.place(x=250, y=0)
+                else:
+                    print("starting over=",starting_over)
+                    handle_input(self.count)
+
+
+            elif self.count==8:
+
+                if return_button: # Destroy previous button
+                    return_button.destroy()
+                    entry1 = None
+                    entry2 = None
+                    entry3 = None
+                    entry4 = None
+
+                print(ROTATION_ANGLE)
+                self.My_mouse_wheel(-ROTATION_ANGLE, 180-50 , 400+30 ,"C") # replace by relevant self.X and self.Y ?
+
+                if (NORTH_MODE=='M'):
+                    resize_north_icon = northmag_icon.resize((70, 70))
+                elif (NORTH_MODE=='P'):
+                    resize_north_icon = polaris_icon.resize((70, 70))
+
+                return_button_icon = ImageTk.PhotoImage(resize_north_icon)
+                return_button = tk.Button(self.canvas, image=return_button_icon, command = lambda i=j: handle_input(i))
+                return_button.image = return_button_icon
+                return_button.pack()
+                return_button.place(x=275, y=700)
+
+            elif self.count==9:
+
+                if return_button: # Destroy previous button
+                    return_button.destroy()
+                    entry1 = None
+                    entry2 = None
+                    entry3 = None
+                    entry4 = None
+
+        ## while Ctrl Alt double click on north button, binding while launching north
+##                        draw(image) ?
+##        rotate plot or ? draw_plot(plot)
+##
+##                ouitoo_end=0
+##                while (ouitoo_end<100):
+                    self.master.after(1000, self.TrackPlot())
+##                    ouitoo_end+=1
+
 
 
         main_canvas = None  # Initialize canvas outside the loop
@@ -587,6 +771,12 @@ class Application(tk.Frame):
 ##
 
     def load_image(self, filepath):
+        global mapname, datamap
+
+        mapname=filepath
+        # Files usage
+        mapfilename =  "./" + dirmap + "/"  + mapname
+        filepath=mapfilename
         try:
             self.master.iconbitmap(".icons/simple2.ico")
 #            self.pil_image = Image.open(filepath)
@@ -601,7 +791,7 @@ class Application(tk.Frame):
 #
             self.zoom_fit(self.pil_image.width, self.pil_image.height)
             self.draw_image(self.pil_image)
-            self.GUI_menus()
+##            self.GUI_menus()
 
         except FileNotFoundError:
             print(f"Error: Image file not found at {filepath}")
@@ -609,41 +799,6 @@ class Application(tk.Frame):
             print(f"Error loading image: {e}")
 #        except Exception as e2:
 #            print(f"Error setting window icon: {e2}")
-
-# pointer used as a visual locator to pin the map to the GPS world
-#
-
-    def load_pointer(self, MyCanvas, PointerCyc):
-
-        # ============
-        # ====== adds a pointer if PointerCyc True
-
-        if (PointerCyc):
-            root.update_idletasks()  # Make sure the window is fully rendered
-            ##pil_image.width,self.pil_image.height)
-            window_width = root.winfo_width()
-            window_height = root.winfo_height()
-
-            # center coordinates
-            c_x=window_width*0.5
-            c_y=window_height*0.5
-
-            # Load the image
-            self.image_top = ImageTk.PhotoImage(Image.open("D:\DATA\_Newfolder\ouitoo\.icons\pointer.png"))
-            photo_width = self.image_top.width()
-            photo_height = self.image_top.height()
-
-            self.item_top = MyCanvas.create_image(
-            c_x, c_y,
-            anchor='nw',
-            image=self.image_top
-            )
-        else:
-            if self.image_top: # Check if it is not None
-                MyCanvas.delete(self.item_top) # Delete the item
-                self.image_top = None # Reset the image
-                self.item_top = None # Reset the item
-        # ===============
 
 #
 #
@@ -685,10 +840,14 @@ class Application(tk.Frame):
 
         self.mat_affine = np.dot(mat, self.mat_affine)
 
-    def rotate_at(self, deg:float, cx:float, cy:float):
+    def rotate_at(self, deg:float, cx:float, cy:float, flag):
+        print("rotate_at(self, deg:float, cx:float, cy:float):", deg, cx, cy)
         self.translate(-cx, -cy)
         self.rotate(deg)
-        self.translate(cx, cy)
+        if flag!="C":
+            self.translate(cx, cy)
+        else:
+            self.translate(180, 400)
 ## ================
 
 # initial fitting of the map to the window
@@ -731,7 +890,7 @@ class Application(tk.Frame):
 #
 
     def draw_image(self, pil_image):
-        global PointCyc, ROTATION_ANGLE
+        global ROTATION_ANGLE
 
         if pil_image == None:
             return
@@ -806,16 +965,99 @@ class Application(tk.Frame):
                 anchor='nw',
                 image=im
                 )
-##
-##
-## Called only at GUI step PointCyc == True
-##
-        self.load_pointer(self.canvas, PointCyc)
+        self.canvas.tag_lower(item)
 ##
 ##
         self.image = im
 
 # ----------------- here ends draw_image()
+
+# displaying plot
+#
+
+    def draw_plot(self, class_plot):
+        print("displaying plot")
+
+        if self.Plot_Pos == []:
+            return
+        if self.plotlabel != None:
+            print(self.plotlabel)
+            self.canvas.delete(self.plotlabel)
+            self.plotlabel = None
+            return
+
+##
+##        canvas_width = self.master.winfo_width()
+##        canvas_height = self.master.winfo_height()
+
+        affine_= (
+            self.mat_affine[0, 0], self.mat_affine[0, 1], self.mat_affine[0, 2],
+            self.mat_affine[1, 0], self.mat_affine[1, 1], self.mat_affine[1, 2]
+            )
+
+        mat_inv = np.linalg.inv(self.mat_affine)
+
+        # numpy array
+        affine_inv = (
+            mat_inv[0, 0], mat_inv[0, 1], mat_inv[0, 2],
+            mat_inv[1, 0], mat_inv[1, 1], mat_inv[1, 2]
+            )
+
+        PosMat=np.array(self.Plot_Pos)
+        T_Mat=affine_
+        TMat=np.array([(T_Mat[0],T_Mat[3]),(T_Mat[1],T_Mat[4])])
+        CMat=np.array((T_Mat[2],T_Mat[5]))
+        Arr_Pos=np.dot(PosMat,TMat)+CMat
+        List_Pos=Arr_Pos.tolist()
+
+##import numpy
+##
+##Plot_Pos=[(2,3),(2,3),(2,3),(2,3)]
+##PosMat=numpy.array(Plot_Pos)
+##T_Mat=(1,0.5,1,0.5,1,1)
+##TMat=numpy.array([(T_Mat[0],T_Mat[3]),(T_Mat[1],T_Mat[4])])
+##CMat=numpy.array((T_Mat[2],T_Mat[5]))
+##print(numpy.dot(PosMat,TMat)+CMat)
+
+
+
+        print("draw_plot",List_Pos)
+
+##        # PIL
+##        dst = self.pil_image.transform(
+##                    (canvas_width, canvas_height),
+##                    Image.AFFINE,
+##                    affine_inv,
+##                    Image.NEAREST
+##                    )
+##
+##
+##        im = ImageTk.PhotoImage(image=dst)
+##
+##        item = self.canvas.create_image(
+##                0, 0,
+##                anchor='nw',
+##                image=im
+##                )
+##        self.canvas.tag_lower(item)
+
+
+
+##        LAT_REF=40.81147001
+##        LONG_REF=-96.68791604
+##        LAT_PT2=40.81908576
+##        LONG_PT2=-96.69120128
+
+        self.plotlabel=self.canvas.create_image(10,10, image=self.track_icon, anchor="center")
+        self.canvas.image = self.plotlabel # Keep a reference to prevent garbage collection
+        self.plotlabel=self.canvas.create_image(50,50, image=self.track_icon, anchor="center")
+        self.canvas.image = self.plotlabel # Keep a reference to prevent garbage collection
+        self.plotlabel=self.canvas.create_image(List_Pos[0][0],List_Pos[0][1], image=self.place_icon, anchor="center")
+        self.canvas.image = self.plotlabel # Keep a reference to prevent garbage collection
+##        self.place_icon
+##        self.track_icon
+        print("plotlabel",self.plotlabel)
+
 
 # calling this due to mouse events
 #
@@ -824,6 +1066,14 @@ class Application(tk.Frame):
         if self.pil_image == None:
             return
         self.draw_image(self.pil_image)
+
+# calling this due to mouse events
+#
+
+    def redraw_plot(self):
+        if self.Plot_Pos == []:
+            return
+        self.draw_plot(self.Plot_Pos)
 
 #
 # -------------------------------------------------------------------------------
@@ -840,6 +1090,7 @@ class Application(tk.Frame):
             return
         self.translate(event.x - self.__old_event.x, event.y - self.__old_event.y)
         self.redraw_image()
+        self.redraw_plot()
         self.__old_event = event
 
 ##    def mouse_move(self, event):
@@ -887,13 +1138,27 @@ class Application(tk.Frame):
             else:
                 self.rotate_at(5, event.x, event.y)
         self.redraw_image()
+        self.redraw_plot()
 
-    def GPS_to_screen(self, current_LAT, current_LONG):
+    def My_mouse_wheel(self, rotang, Myevent_x, Myevent_y,flag):
+        if self.pil_image == None:
+            return
+        self.rotate_at(rotang, Myevent_x, Myevent_y, flag)
+        self.redraw_image()
+        self.redraw_plot()
+
+    def GPS_to_screen(self):
         global LAT_REF,LONG_REF,LAT_PT2,LONG_PT2,DISTANCE,SCALE,ROTATION_ANGLE,NORTH_MODE, MAP_NAME
     ##LONG0=-96.68791604
     ##LAT0=40.81147001
     ##LONG2=-96.69120128
     ##LAT2=40.81908576
+
+
+        """Function to be executed every second."""
+        print("Function executed")
+        threading.Timer(1, self.GPS_to_screen).start()
+
         LONG0=LONG_REF
         LAT0=LAT_REF
         LONG2=LONG_PT2
@@ -910,6 +1175,7 @@ class Application(tk.Frame):
         a_LAT = (Y0-Y2)/(LAT0-LAT2);
         b_LAT = Y0 - a_LAT * LAT0;
 
+        current_LAT,current_LONG = self.API_GPS()
         x_LONG=current_LONG
         y_LAT=current_LAT
 
@@ -923,8 +1189,10 @@ class Application(tk.Frame):
         ##
         ##// Print the transformed point
         print(f"Transformed point: ({x_screen}, {y_screen})")
+        print(self.Plot_Pos)
+        add_this = (float(x_screen), float(y_screen))
+        self.Plot_Pos.append(add_this)
 
-        tk.Label(self.master, text = f"({current_LAT}, {current_LONG})").place(x=x_screen/10, y=y_screen/10)
 ## x_xcreen and y_screen refer to the image :: change
 
 
@@ -969,13 +1237,173 @@ class Application(tk.Frame):
 ##	40.8119642	-96.6881422
 ##	40.8119611	-96.6880644
 ##	40.8119565	-96.6880141
+##        LAT_REF=40.81147001
+##        LONG_REF=-96.68791604
+##        LAT_PT2=40.81908576
+##        LONG_PT2=-96.69120128
+        current_LAT=40.8104943
+        current_LONG=-96.6891308
         return current_LAT, current_LONG
-
-
+#
+#
+#
+#
     def TrackPlot(self):
+
         print("plotting track")
+        print(self.X0, self.Y0, self.X2, self.Y2)
         print("status is:")
-        ## while double click on north button
+
+        place_pil = Image.open("D:\DATA\_Newfolder\ouitoo\.icons\place.png")
+        track_pil = Image.open("D:\DATA\_Newfolder\ouitoo\.icons\mqweorkjfweirkhgfvoerktgworgqerffgfgt245rehy563333.png")
+##        place_icon.resize(100,100)
+##        track_icon.resize(20,20)
+        self.place_icon=ImageTk.PhotoImage(place_pil.resize((100,100)))
+        self.track_icon=ImageTk.PhotoImage(track_pil.resize((50,50)))
+
+        self.north(-2.56)
+
+        # Start the function for the first time
+
+##import schedule
+##import time
+##
+##def job():
+##    print("I'm running every second...")
+##
+##schedule.every(1).second.do(job)
+##
+##while True:
+##    schedule.run_pending()
+##    time.sleep(1)
+
+
+        self.GPS_to_screen()
+        self.draw_plot(self.Plot_Pos)
+
+
+##        self.master.destroy()
+        self.create_transparent_image_button(self.on_button_click) ## here's an error
+#
+#
+#
+    def north(self,mag_decl):
+        global rotang, button, north_mag_image_pil, north_polaris_image_pil, north_direction_label, north_mag_image, north_polaris_image
+##        global LAT_REF,LONG_REF,LAT_PT2,LONG_PT2,DISTANCE,SCALE,ROTATION_ANGLE,NORTH_MODE, MAP_NAME
+
+        def simulate_magnorth_api_call():
+            """Simulates an API call and returns magnorth_direction condition."""
+##            return random.choice(["M", "P"])
+            return random.choice([30 + random.uniform(-5,5)])
+
+
+        def update_north_direction_and_rotate():
+            northdirvar=self.northdir
+            print(northdirvar, north_mode)
+
+            if (northdirvar =='M'):
+                rotang = simulate_magnorth_api_call()
+            else:
+                rotang = simulate_magnorth_api_call() - mag_decl
+
+            print(rotang)
+            self.rotateat_ang=rotang
+            self.My_mouse_wheel(-(self.rotateat_ang-self.rotateat_ang_prev),180,400,"NC") # replace by relevant self.X and self.Y ?
+            self.rotateat_ang_prev=self.rotateat_ang
+
+            if self.northdir == "M":
+        ##        rotang = 0
+                rotated_img_pil = north_mag_image_pil.rotate(rotang)
+        ##        button.config(image=north_mag_image)
+                resized_img_pil = rotated_img_pil.resize((50, 50))
+                rotated_img = ImageTk.PhotoImage(resized_img_pil)
+
+                button.config(image=rotated_img)
+                button.place(x=300,y=700)
+                button.image = rotated_img
+                north_direction_label.config(text="Magnetic North!")
+                self.northdir="P"
+
+            elif self.northdir == "P":
+        ##        rotang = 180
+                rotated_img_pil = north_polaris_image_pil.rotate(rotang)
+        ##        button.config(image=north_polaris_image)
+                resized_img_pil = rotated_img_pil.resize((50, 50))
+                rotated_img = ImageTk.PhotoImage(resized_img_pil)
+                button.config(image=rotated_img)
+                button.place(x=300,y=700)
+                button.image = rotated_img
+                north_direction_label.config(text="Polaris!")
+                self.northdir="M"
+
+
+        ##    root.after(500, update_north_direction_and_rotate)
+
+        # Load images
+
+        north_mag_image_pil = Image.open("D:\DATA\_Newfolder\ouitoo\.icons/Mag.png")
+        north_polaris_image_pil = Image.open("D:\DATA\_Newfolder\ouitoo\.icons/polaris.png")
+        north_mag_image = ImageTk.PhotoImage(north_mag_image_pil)
+        north_polaris_image = ImageTk.PhotoImage(north_polaris_image_pil)
+
+
+##        north_mode = "P"
+##        rotation_angle = -4
+
+##        rotation_angle = ROTATION_ANGLE
+        rotation_angle = 0.0
+        north_mode = NORTH_MODE
+
+
+        rotang=rotation_angle
+
+        button = tk.Button(
+            self.canvas,
+            image=north_mag_image,
+            compound=tk.CENTER,
+        ##    command=None
+            command=update_north_direction_and_rotate
+        )
+        button.pack()
+
+        # Create and pack the label with side=TOP and pady=10
+        north_direction_label = tk.Label(root, text="Loading...")
+        north_direction_label.pack(side=tk.TOP, pady=10)
+
+        update_north_direction_and_rotate()
+
+##        return
+
+
+###################################################################
+# image button demo
+
+    def create_transparent_image_button(self, command):
+
+        pil_image = Image.open("D:\DATA\_Newfolder\ouitoo\sad.png")
+        new_width = 20
+        new_height = 15
+        pil_resized_image = pil_image.resize((new_width, new_height))
+        self.button_demo_image = ImageTk.PhotoImage(pil_resized_image)
+##        self.button_demo_image = ImageTk.PhotoImage(pil_image)
+        self.button_id_demo = self.canvas.create_image(100, 300, image=self.button_demo_image, anchor=tk.NW)
+        self.canvas.image = self.button_demo_image # krgc, scope of Tk create_image, not necessary since method ImageTk.PhotoImage() was used
+        self.canvas.image = pil_resized_image # krgc, scope of PIL resize, not necessary
+
+
+        def on_click(event):
+            if self.canvas.find_withtag(tk.CURRENT) == (self.button_id_demo,):
+                command()
+
+        self.canvas.tag_bind(self.button_id_demo, "<Button-1>", on_click)
+
+        return self.button_id_demo
+
+    ##    create_transparent_image_button(self.on_button_click)
+
+    def on_button_click(self):
+        print("Button clicked!, Hey I am sad")
+        self.canvas.delete(self.button_id_demo)
 
 ## end of class Application()
 ##
@@ -1030,6 +1458,7 @@ image_path = "photos/union-plaza-ocad-4000-04-09-2021.png"  # Example: "images/m
 ##image_path = "pointer.png"  # Example: "images/my_image.png"
 ROTATION_ANGLE=0.0
 
-app.load_image(image_path) # this has to be changed once mapname can be used instead of image_path
+##app.load_image(image_path) # this has to be changed once mapname can be used instead of image_path
+app.GUI_menus()
 
 root.mainloop()
