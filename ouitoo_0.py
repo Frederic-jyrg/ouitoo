@@ -13,6 +13,9 @@ import functools
 import time
 import threading
 import random
+import csv # this for API_GPS simulation
+
+
 
 
 ## Test for system check
@@ -95,6 +98,9 @@ class Application(tk.Frame):
 
         self.Plot_Pos = []
         self.plotlabel = None
+        self.START_TIME = 0
+        self.image_objects = []
+
 
 ## button demo
         self.button_demo_image = None
@@ -628,6 +634,7 @@ class Application(tk.Frame):
 ##
 ##                ouitoo_end=0
 ##                while (ouitoo_end<100):
+                    self.trackplotstart=0
                     self.master.after(1000, self.TrackPlot())
 ##                    ouitoo_end+=1
 
@@ -966,6 +973,7 @@ class Application(tk.Frame):
                 image=im
                 )
         self.canvas.tag_lower(item)
+        self.redraw_plot()
 ##
 ##
         self.image = im
@@ -978,12 +986,84 @@ class Application(tk.Frame):
     def draw_plot(self, class_plot):
         print("displaying plot")
 
+        # Clear previous plots
+        if hasattr(self, 'plot_objects') and self.plot_objects:
+            for obj_id in self.plot_objects:
+                self.canvas.delete(obj_id)
+            self.plot_objects = []
+
+        if hasattr(self, 'track_objects') and self.track_objects:
+            for track_id in self.track_objects:
+                self.canvas.delete(track_id)
+            self.track_objects = []
+
+        if self.Plot_Pos == []:
+            return
+
+        affine_ = (
+            self.mat_affine[0, 0], self.mat_affine[0, 1], self.mat_affine[0, 2],
+            self.mat_affine[1, 0], self.mat_affine[1, 1], self.mat_affine[1, 2]
+        )
+
+        mat_inv = np.linalg.inv(self.mat_affine)
+
+        affine_inv = (
+            mat_inv[0, 0], mat_inv[0, 1], mat_inv[0, 2],
+            mat_inv[1, 0], mat_inv[1, 1], mat_inv[1, 2]
+        )
+
+        PosMat = np.array(self.Plot_Pos)
+        T_Mat = affine_
+        TMat = np.array([(T_Mat[0], T_Mat[3]), (T_Mat[1], T_Mat[4])])
+        CMat = np.array((T_Mat[2], T_Mat[5]))
+        Arr_Pos = np.dot(PosMat, TMat) + CMat
+        List_Pos = Arr_Pos.tolist()
+
+        # Store object IDs
+        if not hasattr(self, 'plot_objects'):
+            self.plot_objects = []
+
+        if not hasattr(self, 'track_objects'):
+            self.track_objects = []
+
+##        self.plot_objects.append(self.canvas.create_image(10, 10, image=self.track_icon, anchor="center"))
+##        self.plot_objects.append(self.canvas.create_image(50, 50, image=self.track_icon, anchor="center"))
+##        self.plot_objects.append(self.canvas.create_image(List_Pos[0][0], List_Pos[0][1], image=self.place_icon, anchor="center"))
+
+        Pos_count = -1
+        for Pos in List_Pos:
+            Pos_count += 1
+
+        if Pos_count >= 0:
+            for i_count in range(Pos_count):
+                x_Pos, y_Pos = List_Pos[i_count][0], List_Pos[i_count][1]
+                if (i_count==Pos_count-1):
+                    self.plot_objects.append(self.canvas.create_image(List_Pos[i_count][0], List_Pos[i_count][1], image=self.place_icon, anchor="center"))
+                self.track_objects.append(self.canvas.create_image(x_Pos, y_Pos, anchor=tk.CENTER, image=self.track_icon))
+
+        if self.plot_objects:
+            self.canvas.tag_raise(self.plot_objects[-1]) #raise the last plot_object.
+
+        print("plot_objects", self.plot_objects)
+        print("track_objects", self.track_objects)
+
+###
+
+    def draw_plot2(self, class_plot):
+        print("displaying plot")
+
+        self.image_objects = []
+
         if self.Plot_Pos == []:
             return
         if self.plotlabel != None:
             print(self.plotlabel)
             self.canvas.delete(self.plotlabel)
             self.plotlabel = None
+            return
+        if self.image_objects != []:
+            self.canvas.delete(self.image_objects)
+            self.image_objects = []
             return
 
 ##
@@ -1049,11 +1129,23 @@ class Application(tk.Frame):
 ##        LONG_PT2=-96.69120128
 
         self.plotlabel=self.canvas.create_image(10,10, image=self.track_icon, anchor="center")
+        print("plotlabel",self.plotlabel)
         self.canvas.image = self.plotlabel # Keep a reference to prevent garbage collection
         self.plotlabel=self.canvas.create_image(50,50, image=self.track_icon, anchor="center")
+        print("plotlabel",self.plotlabel)
         self.canvas.image = self.plotlabel # Keep a reference to prevent garbage collection
         self.plotlabel=self.canvas.create_image(List_Pos[0][0],List_Pos[0][1], image=self.place_icon, anchor="center")
+        print("plotlabel",self.plotlabel)
         self.canvas.image = self.plotlabel # Keep a reference to prevent garbage collection
+        Pos_count=-1
+##        image_objects=[]
+        for Pos in List_Pos:
+            Pos_count+=1
+        if Pos_count>=0:
+            for i_count in range(Pos_count):
+                x_Pos, y_Pos = List_Pos[i_count][0],List_Pos[i_count][1]
+                self.image_objects.append(self.canvas.create_image(x_Pos, y_Pos, anchor=tk.CENTER, image=self.track_icon))
+        self.canvas.tag_raise(self.plotlabel)
 ##        self.place_icon
 ##        self.track_icon
         print("plotlabel",self.plotlabel)
@@ -1154,10 +1246,14 @@ class Application(tk.Frame):
     ##LONG2=-96.69120128
     ##LAT2=40.81908576
 
-
         """Function to be executed every second."""
         print("Function executed")
         threading.Timer(1, self.GPS_to_screen).start()
+##        TimeVar = time.monotonic()%3
+
+##        current_LAT,current_LONG = self.API_GPS(2)
+        current_LAT,current_LONG = self.API_GPS(math.floor((time.monotonic()-self.START_TIME)/3))
+        print(math.floor((time.monotonic()-self.START_TIME)/3),current_LAT,current_LONG)
 
         LONG0=LONG_REF
         LAT0=LAT_REF
@@ -1169,16 +1265,16 @@ class Application(tk.Frame):
         X2 = self.X2
         Y2 = self.Y2
 
+        print(X0,Y0,X2,Y2,LONG0,LAT0,LONG2,LAT2)
+
         a_LONG = (X0-X2)/(LONG0-LONG2);
         b_LONG = X0 - a_LONG * LONG0;
 
         a_LAT = (Y0-Y2)/(LAT0-LAT2);
         b_LAT = Y0 - a_LAT * LAT0;
 
-        current_LAT,current_LONG = self.API_GPS()
         x_LONG=current_LONG
         y_LAT=current_LAT
-
 
         x_transformed = a_LONG * x_LONG + b_LONG
         y_transformed = a_LAT * y_LAT + b_LAT
@@ -1196,53 +1292,34 @@ class Application(tk.Frame):
 ## x_xcreen and y_screen refer to the image :: change
 
 
-
-
-    def API_GPS(self):
+    def API_GPS(self,GPS_count):
 ##Example of track (from start to post #1)
 ##	latitude (DEC)	longitude (DEC)
 ##	40.8104943	-96.6891308
-##	40.8105471	-96.6891375
-##	40.8106354	-96.6891563
-##	40.8107095	-96.6891643
-##	40.8108211	-96.6891563
-##	40.8109013	-96.6891295
-##	40.8109353	-96.689112
-##	40.8109714	-96.6890651
-##	40.8109978	-96.688996
-##	40.8110181	-96.6889417
-##	40.8110348	-96.6888921
-##	40.8110516	-96.6887995
-##	40.811084	-96.6887311
-##	40.81115	-96.6886909
-##	40.8112495	-96.6886855
-##	40.8112952	-96.688648
-##	40.8113652	-96.6885836
-##	40.8114363	-96.6885742
-##	40.8115206	-96.6886089
-##	40.8115663	-96.6886666
-##	40.8115947	-96.6887175
-##	40.8116739	-96.6887752
-##	40.8117195	-96.6887792
-##	40.8118134	-96.6887357
-##	40.8118992	-96.6887162
-##	40.8119438	-96.6886921
-##	40.8119926	-96.6886733
-##	40.8120332	-96.6886371
-##	40.8120474	-96.6885794
-##	40.8120403	-96.6884989
-##	40.812021	-96.6883997
-##	40.8119916	-96.6883313
-##	40.8119763	-96.688228
-##	40.8119642	-96.6881422
-##	40.8119611	-96.6880644
+##  .../...
 ##	40.8119565	-96.6880141
 ##        LAT_REF=40.81147001
 ##        LONG_REF=-96.68791604
 ##        LAT_PT2=40.81908576
 ##        LONG_PT2=-96.69120128
-        current_LAT=40.8104943
-        current_LONG=-96.6891308
+
+        if self.trackplotstart<1:
+            print(self.trackplotstart)
+            with open("D:/DATA/_Newfolder/ouitoo/urkytsk_track.csv", 'r') as file:
+                csvreader = csv.reader(file)
+                self.GPS_dat=list(csvreader)
+##                for row in csvreader:
+##                    print(row)
+        ##        header = next(csvreader)
+        ##        print("Header:", header)
+##            print(GPS_dat)
+            self.trackplotstart=1
+##            time.sleep(1333.0)
+        print(GPS_count,self.GPS_dat)
+        current_LAT = float(np.array(self.GPS_dat)[GPS_count][0])
+        current_LONG = float(np.array(self.GPS_dat)[GPS_count][1])
+##        GPS_count+=1
+        print(current_LAT, current_LONG)
         return current_LAT, current_LONG
 #
 #
@@ -1276,14 +1353,13 @@ class Application(tk.Frame):
 ##while True:
 ##    schedule.run_pending()
 ##    time.sleep(1)
-
-
+        self.START_TIME=time.monotonic()
         self.GPS_to_screen()
         self.draw_plot(self.Plot_Pos)
 
 
 ##        self.master.destroy()
-        self.create_transparent_image_button(self.on_button_click) ## here's an error
+        self.create_transparent_image_button(self.on_button_click)
 #
 #
 #
