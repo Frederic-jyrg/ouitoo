@@ -20,9 +20,18 @@ This directory companion of the pull request along with the 26-3-10-2025-plot-on
 * User stuff oriented to Polaris, track plots well (and orientation switches with north direction Polaris to Magnetic North) (case urkytsk-12000): <br>
 ![](https://github.com/Frederic-jyrg/ouitoo/blob/main/Pull%20status%2026-3-10-2025-plot-on-the-right-track-issue/Screenshot%202025-03-15%20101711.png)
 ![](https://github.com/Frederic-jyrg/ouitoo/blob/main/Pull%20status%2026-3-10-2025-plot-on-the-right-track-issue/Screenshot%202025-03-15%20101837.png) <br>
-* Map union plaza oriented to user requirement, track does not plot well (but, orientation switches with north direction Polaris to Magnetic North); but, first point and last point of the track plot at theit expected locations (case union-plaza-4000): <br>
+* Map union plaza oriented to user requirement, **track does not plot well** (but, orientation switches with north direction Polaris to Magnetic North); but, first point and last point of the track plot at theit expected locations (case union-plaza-4000): <br>
 ![](https://github.com/Frederic-jyrg/ouitoo/blob/main/Pull%20status%2026-3-10-2025-plot-on-the-right-track-issue/Screenshot%202025-03-15%20100711.png)
 ![](https://github.com/Frederic-jyrg/ouitoo/blob/main/Pull%20status%2026-3-10-2025-plot-on-the-right-track-issue/Screenshot%202025-03-15%20100729.png) <br>
 
 ## Files
+
+Map: https://github.com/Frederic-jyrg/ouitoo/blob/main/Pull%20status%2026-3-10-2025-plot-on-the-right-track-issue/union-plaza-ocad-4000-04-09-2021-Polaris.png <br>
+Inputs: https://github.com/Frederic-jyrg/ouitoo/blob/main/Pull%20status%2026-3-10-2025-plot-on-the-right-track-issue/union-plaza-ocad-4000-04-09-2021-Polaris.PNG.input <br>
+Track: https://github.com/Frederic-jyrg/ouitoo/blob/main/Pull%20status%2026-3-10-2025-plot-on-the-right-track-issue/union_plaza_track.csv <br>
+
+Map: https://github.com/Frederic-jyrg/ouitoo/blob/main/Pull%20status%2026-3-10-2025-plot-on-the-right-track-issue/union-plaza-4000.png <br>
+Inputs: https://github.com/Frederic-jyrg/ouitoo/blob/main/Pull%20status%2026-3-10-2025-plot-on-the-right-track-issue/union-plaza-4000.PNG.input <br>
+Track: https://github.com/Frederic-jyrg/ouitoo/blob/main/Pull%20status%2026-3-10-2025-plot-on-the-right-track-issue/union_plaza_track.csv <br>
+
 
